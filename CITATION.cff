@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, cite its version and retain the processing configuration."
+title: "Microscopy Workbench local interactive native-data rendering and video export"
+type: software
+authors:
+  - name: "Microscopy Workbench contributors"
+version: 1.0.0
+date-released: 2026-10-20
+license: MIT
+abstract: "Offline native-position and isosurface rendering, plus fixed-ROI time-series GIF and MP4 export with acquisition timestamps and reproducible settings."
+repository-code: "https://github.com/xuanyuelingwu/microscopy-workbench"
+url: "https://github.com/xuanyuelingwu/microscopy-workbench"
+keywords:
+  - microscopy
+  - iGEM
+  - ND2
+  - OME-TIFF
+  - three-dimensional rendering
+  - reproducibility

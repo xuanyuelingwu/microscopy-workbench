@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>显微图像工作台 · 三维与时间序列</title>
+<link rel="stylesheet" href="/styles.css">
+<script defer src="/app.js"></script>
+</head>
+<body>
+<header class="page-header">
+<div><h1>显微图像工作台</h1><p>三维重构与时间序列视频 · 本地处理 · 参数可复现</p></div>
+<span id="connection">正在连接本地服务</span>
+</header>
+<nav class="tabs" aria-label="处理模式">
+<button class="tab active" id="videoTab">时间序列 → 视频</button>
+<button class="tab" id="volumeTab">两种三维重构</button>
+<button class="tab" id="helpTab">使用说明</button>
+</nav>
+<div id="error" class="error" role="alert" hidden><span></span><button id="dismissError" aria-label="关闭提示">×</button></div>
+<div class="workspace" id="workspace">
+<aside>
+<section>
+<h2>1. 选择源文件</h2>
+<label class="file-label" for="sourceFile">选择本机 ND2 / OME-TIFF</label>
+<input type="file" id="sourceFile" accept=".nd2,.tif,.tiff">
+<progress id="uploadProgress" max="100" value="0" hidden></progress>
+<p id="uploadMessage" class="small muted">文件只传给本机 Python 服务。</p>
+<details><summary>大文件：直接读取本机路径</summary>
+<label for="sourcePath">完整文件路径</label>
+<input id="sourcePath" placeholder="X:\...\sample.nd2" type="text">
+<button id="openPath">打开路径 · 不复制文件</button>
+</details>
+<div id="metadata" hidden><p class="source-name" id="sourceName"></p><table class="meta-table"><tbody id="metaRows"></tbody></table><p id="sourceWarning" class="small warning"></p></div>
+</section>
+<section id="dimensionSection" hidden>
+<h2>2. 固定采集维度</h2><div id="dimensions"></div>
+<p class="small muted" id="dimensionNote"></p>
+</section>
+<section id="channelSection" hidden>
+<h2>3. 通道与显示</h2>
+<p class="small muted">启用 1–2 个三维通道，或至多 4 个视频通道。LUT 全片固定。</p>
+<p class="small muted">初始 LUT 参考源首帧；背景取首帧强度众数。三维默认阈值 150 a.u. 仅为可调整起点，需结合切片核查。</p>
+<div id="channels"></div>
+<button id="applyDisplay" class="wide">更新当前帧显示</button>
+<p id="lutStatus" class="small muted"></p>
+</section>
+<section id="advancedSection" hidden>
+<details><summary>校准与高级参数</summary>
+<p class="small muted">留空时读取文件元数据；只在已知真实值时覆盖。</p>
+<div class="pair"><label>X 像素尺寸 / µm<input id="calX" type="number" min="0.000001" step="any"></label><label>Y 像素尺寸 / µm<input id="calY" type="number" min="0.000001" step="any"></label></div>
+<label>Z 间距 / µm（名义模式）<input id="calZ" type="number" min="0.000001" step="any"></label>
+<label>时间间隔 / s（覆盖时间戳）<input id="calDt" type="number" min="0.000001" step="any"></label>
+<label>Z 坐标来源<select id="zMode"><option value="auto">自动：实测优先，校准名义间距备选</option><option value="recorded">仅使用逐层实测坐标</option><option value="nominal">明确使用名义 Z 间距</option></select></label>
+<button id="applyCalibration">应用校准并重读时间 / Z 轴</button>
+</details>
+</section>
+<section><h2>本地输出</h2><p id="outputRoot" class="small path"></p><p class="small muted">每次任务使用独立目录；源图像不作修改。</p></section>
+</aside>
+<main>
+<div id="empty" class="empty"><h2>先选择一个显微图像文件</h2><p>时间序列需要 T 维度；三维重构需要 Z 层扫。</p><p>ND2 保留原始通道、位置、层坐标与时间记录。</p></div>
+<div id="editor" hidden>
+<section class="frame-section">
+<div class="section-title"><h2 id="frameTitle">原生帧与观察范围</h2><span id="frameStatus" class="small muted"></span></div>
+<div class="frame-controls">
+<button id="prevFrame" aria-label="上一帧">‹</button><input id="frameSlider" type="range" min="0" max="1" step="1" value="0" aria-label="当前原生帧">
+<button id="nextFrame" aria-label="下一帧">›</button><label>帧 <input id="frameNumber" type="number" min="1" value="1"></label><span id="frameTime"></span>
+</div>
+<div class="roi-tools">
+<button id="drawROI" class="active">画框</button><button id="moveROI">移动 / 缩放</button><button id="resetROI">全视野</button>
+<span class="small muted">可在任意帧框选；坐标为原始像素，所有帧共用同一范围。</span>
+</div>
+<div class="image-area">
+<div class="canvas-box"><canvas id="frameCanvas" width="512" height="512" aria-label="原生图像与交互裁剪框"></canvas></div>
+<div class="crop-box"><h3>局部预览</h3><canvas id="cropCanvas" width="256" height="256"></canvas><p id="roiInfo" class="small"></p><p class="small muted" id="roiReference"></p></div>
+</div>
+<div class="roi-inputs">
+<label>x<input type="number" id="roiX" min="0"></label><label>y<input type="number" id="roiY" min="0"></label>
+<label>宽 / px<input type="number" id="roiW" min="1"></label><label>高 / px<input type="number" id="roiH" min="1"></label>
+<button id="applyROI">应用坐标</button>
+</div>
+</section>
+<div id="videoPanel">
+<section>
+<div class="section-title"><h2>全视野视频预览</h2><button id="makePreview">生成 / 更新全视野视频</button></div>
+<p id="previewNotice" class="small muted">选入时间序列后会先生成全视野预览。调整显示参数后可重新生成。</p>
+<video id="fullVideo" controls playsinline preload="metadata" hidden></video>
+<div id="previewActions" hidden><button id="useVideoFrame">将视频当前位置载入上方原生帧</button><span id="previewSpeed" class="small muted"></span></div>
+</section>
+<section>
+<h2>4. 时间区间与计时零点</h2>
+<p class="small muted">拖动时间轴两端选择区间；点击轴内跳转原生帧。红线为计时零点，可位于所选区间之外。</p>
+<canvas id="timeline" width="1100" height="100" aria-label="时间区间交互轴"></canvas>
+<div class="time-range">
+<label>起始帧<input id="startFrame" type="number" min="1"></label><button id="setStart">以当前帧为起点</button>
+<label>终止帧（包含）<input id="endFrame" type="number" min="2"></label><button id="setEnd">以当前帧为终点</button>
+</div>
+<div class="pair ranges"><label>起始帧<input id="startRange" type="range" min="0" step="1"></label><label>终止帧<input id="endRange" type="range" min="1" step="1"></label></div>
+<div class="time-range"><label>零点：源采集时间 / s<input id="zeroTime" type="number" step="any"></label>
+<button id="setZero">以当前帧为 t = 0</button><button id="zeroFirst">以源首帧为 t = 0</button></div>
+<p id="intervalSummary"></p><p id="timeSource" class="small muted"></p>
+</section>
+<section>
+<h2>5. 导出 GIF 与 MP4</h2>
+<div class="export-options">
+<label>播放倍速<input id="speed" type="number" min="0.001" max="10000" step="any" value="5"></label>
+<label>MP4 帧率<select id="fps"><option>24</option><option selected>30</option><option>60</option></select></label>
+<label>输出最长边<select id="maxSide"><option value="0" selected>保持原始像素</option><option value="1024">至多 1024 px</option><option value="768">至多 768 px</option><option value="512">至多 512 px</option></select></label>
+<label class="check"><input id="timestamp" type="checkbox" checked>添加相对时间</label>
+<label class="check"><input id="scaleBar" type="checkbox" checked>添加比例尺</label>
+</div>
+<p class="small muted">同时输出选定区间的全视野与局部视野。文字和比例尺放在图像下方；保持全部原始帧，过高倍速会自动降低。</p>
+<button id="exportVideo" class="primary">导出选定区间 · 全视野 + 局部 GIF / MP4</button>
+</section>
+</div>
+<div id="volumePanel" hidden>
+<section>
+<h2>4. 两种三维重构</h2>
+<p>同一组原始强度生成原生位置点与线性插值等值面。结果页可旋转、缩放，分别调节各通道不透明度，并显示同一实测位置的共现点。</p>
+<div class="export-options">
+<label>原生点 XY 区块边长<select id="pointStride"><option value="1">1 px · 不按区块抽样</option><option value="2">2 px</option><option value="4" selected>4 px</option><option value="8">8 px</option></select></label>
+<label>每通道显示点上限<select id="pointCap"><option value="50000">50,000</option><option value="100000" selected>100,000</option><option value="250000">250,000</option></select></label>
+<label>等值面网格步长<select id="surfaceStep"><option value="1" selected>1 · 全部网格</option><option value="2">2 · 简化显示</option><option value="3">3 · 简化显示</option></select></label>
+</div>
+<p class="small muted">阈值在左侧通道设置中填写，指背景以上的超额强度。当前框选范围用于重构；默认全视野。显示抽样不改变原生像素统计。</p>
+<button id="buildVolume" class="primary">生成两种三维视图与原生数据包</button>
+<p id="zSource" class="small muted"></p>
+</section>
+<section id="sceneSection" hidden><div class="section-title"><h2>三维交互结果</h2><a id="openViewer" target="_blank" rel="noopener">在新窗口打开</a></div><iframe id="sceneFrame" title="两种三维视图"></iframe></section>
+</div>
+</div>
+<section id="jobSection" hidden><div class="section-title"><h2>处理进度</h2><button id="cancelJob">取消当前任务</button></div><progress id="jobProgress" max="100" value="0"></progress><p id="jobMessage" aria-live="polite"></p></section>
+<section id="resultsSection" hidden><h2>结果与复现文件</h2><div id="results"></div></section>
+</main>
+</div>
+<main id="help" class="help" hidden>
+<h2>启动与数据保留</h2>
+<p>双击工具目录中的 start.bat，保留服务窗口运行。所有计算只在本机进行。浏览器不直接解析 ND2，而是连接本地 Python 服务。</p>
+<p>“选择文件”会复制到本地 workspace/uploads；大文件可粘贴完整路径直接读取。处理结果保存在 workspace/outputs 的独立时间戳目录中。新机器先安装 Python 3.12，再运行 install.bat。</p>
+<h2>时间序列</h2>
+<ol><li>选择时间序列文件，检查固定位置、固定 Z 层以及显示通道。工具自动生成完整时间段的全视野预览。</li>
+<li>使用原生帧滑块，或在视频中定位后点击“将视频当前位置载入”。在任意帧上画框；在移动模式拖动框内移动、拖动四角调整大小。</li>
+<li>拖动时间轴端点或输入起止帧。计时零点可设为任意原生帧，也可输入采集时间；它独立于片段起点。</li>
+<li>点击导出，同时获得全视野与局部的 GIF、MP4、无标注参考图、ROI 坐标、逐帧时间表、固定 LUT 和复现配置。</li></ol>
+<p>所有源帧均保留。MP4 以重复帧近似不等间隔的采集时间；GIF 使用 10 ms 时间单位，实际播放还取决于播放器。末帧停留时间取所选相邻间隔中位数。时间不是人工插值后的“新观测”。</p>
+<h2>三维</h2>
+<ol><li>选择含 Z 维度的文件，并明确固定时间与位置。核对 XY 像素尺寸与 Z 坐标来源。</li>
+<li>选用一或两个通道，设置背景和“背景以上阈值”。显示上下限 / gamma 只影响二维切片与视频；三维的入选位置由背景和阈值决定。</li>
+<li>点击生成两种视图。在结果页切换原生位置与插值等值面，分别调整通道透明度；金色点是两个通道在同一实测 XYZ 同时超阈值的位置。</li></ol>
+<p>原生点为真实采样坐标，显示可有抽样；统计使用全部原生像素。Marching cubes 等值面只在相邻采样位置间线性定位表面，不能增加显微镜的空间分辨率。共现不是分子结合的证明。</p>
+<h2>可复现输出</h2>
+<p>每个结果包包含源文件 SHA-256、settings.json、software_versions.json、METHODS.txt 和逐文件校验清单。三维另含原始 OME-TIFF / NPZ、Z 坐标 CSV、原生阈值共现 CSV 与 PLY 表面。原始文件不包含在下载 ZIP 内。</p>
+<pre>python replay.py --source "原始文件.nd2" --settings "结果目录/settings.json" --output "新的输出目录"</pre>
+<p>默认必须匹配原始文件 SHA-256；把相同协议应用到另一文件需要显式指定 --allow-different-source。复现重算数值与源帧映射，编码文件不保证跨平台二进制完全一致。</p>
+<h2>明确的处理边界</h2>
+<p>不做人工补画、去卷积、超分辨率、自动漂移校正、Z 最大投影冒充单层、或逐帧自动归一化。叠加颜色不用于定量。缺少真实物理校准或时间记录时，工具提示填写已知参数，不猜测单位。</p>
+<p>支持单个灰度荧光 ND2 和单 series、轴定义明确的 OME-TIFF。经典 TIFF 的 Q / I / S 维度不会被自动当作 Z / T；RGB 相机 ND2 暂不支持。单次三维体数据暂设 1.6 GB 内存上限，必要时先框选局部。</p>
+</main>
+<footer class="page-footer">Native-data microscopy workbench · v1.0 · 本机工具，原始数据与观察用衍生文件分别保存</footer>
+</body></html>

@@ -1,0 +1,33 @@
+{
+  "schema": "microscopy-workbench/1",
+  "mode": "volume",
+  "source_sha256": "2db8850535f4f4b119dcd4ccdf5bdd96ca801c29733e4008794ab344fe4c4868",
+  "channels": [
+    {
+      "index": 0,
+      "low": 50,
+      "high": 3000,
+      "gamma": 0.65,
+      "background": 50,
+      "gate": 150,
+      "color": "#2774ff",
+      "opacity": 0.25
+    },
+    {
+      "index": 1,
+      "low": 50,
+      "high": 3000,
+      "gamma": 0.65,
+      "background": 50,
+      "gate": 150,
+      "color": "#ff4050",
+      "opacity": 0.45
+    }
+  ],
+  "selection": {},
+  "z_mode": "recorded",
+  "point_stride": 2,
+  "point_cap": 50000,
+  "surface_step": 1,
+  "example_type": "synthetic only; no biological interpretation"
+}

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Native positions / isosurfaces</title>
+<style>
+*{box-sizing:border-box}body{font:14px/1.6 Arial,"Microsoft YaHei",sans-serif;color:#202124;margin:0;background:#fff}
+header{padding:14px 20px;border-bottom:1px solid #c8cdd1}h1{font:600 19px Georgia,"Noto Serif SC",serif;margin:0 0 4px}
+p{margin:6px 0}.bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid #ddd}
+button,select{font:inherit;padding:6px 12px;background:#fff;color:#222;border:1px solid #a9b0b5;border-radius:3px;cursor:pointer}
+button.active{background:#243f50;color:#fff;border-color:#243f50}label{display:flex;gap:8px;align-items:center}input[type=range]{width:120px;accent-color:#285269}
+#plot{height:65vh;min-height:400px;background:#070b12}main{padding:10px 20px}.muted{color:#59646c;font-size:12px}
+.slices{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px}.slices img{display:block;max-width:100%;max-height:360px;background:#000;image-rendering:pixelated}
+.stats{display:flex;gap:25px;flex-wrap:wrap;margin:8px 0}.stats strong{font-size:19px;font-weight:500}.notice{color:#775b16}
+@media(max-width:600px){.slices{grid-template-columns:1fr}#plot{height:55vh}}
+</style>
+<script>__PLOTLY_JS__</script>
+</head>
+<body>
+<header><h1 id="name"></h1><p id="geometry"></p><p class="muted">原生点保留真实采样坐标；等值面在相邻测量位置之间线性插值。物理坐标比例保持一致。</p></header>
+<div class="bar">
+<button id="nativeBtn" class="active">原生位置 · 共现</button>
+<button id="surfaceBtn">插值等值面</button>
+<button id="reset">重置视角</button>
+<button id="png">保存当前视图 PNG</button>
+<label id="overlapLabel"><input id="overlap" type="checkbox" checked>金色共现点</label>
+<label><input id="axes" type="checkbox" checked>坐标轴</label>
+</div>
+<div class="bar" id="opacities"></div>
+<div id="plot"></div>
+<main>
+<p id="definition"></p><p id="sampling" class="muted"></p><p id="warnings" class="notice"></p>
+<div id="statistics" class="stats"></div>
+<div class="bar" style="padding-left:0"><label>实测层 <input id="plane" type="range" min="0" value="0" step="1"></label><span id="zlabel"></span></div>
+<div class="slices"><div><p>原生 XY 层 · 颜色合并</p><img id="slice" alt="Native XY slice"></div>
+<div id="classBox"><p>同一实测层阈值分类</p><img id="classes" alt="Same-plane threshold classes"><p class="muted">蓝：仅通道 1；红：仅通道 2；金：两通道均超阈值。</p></div></div>
+<p class="muted">切片为至多 512 px 的最近邻预览，完整原生 PNG / OME-TIFF / NPZ 在结果包中。积分按全部原生像素计算；共现不代表分子结合。</p>
+</main>
+<script>
+"use strict";
+const SCENE=__SCENE_JSON__;
+let mode="native", drawn=false;
+const $=id=>document.getElementById(id);
+const camera={eye:{x:1.5,y:-1.6,z:1.1}};
+function layout(){
+ return {margin:{l:5,r:5,b:5,t:15},paper_bgcolor:"#070b12",font:{color:"#dbe5ee"},showlegend:true,
+ legend:{x:0,y:1},uirevision:"same-scene",scene:{aspectmode:"data",bgcolor:"#070b12",camera:camera,
+ xaxis:{title:{text:"x / µm"},visible:$("axes").checked,range:[0,SCENE.extent_um[0]]},
+ yaxis:{title:{text:"y / µm"},visible:$("axes").checked,range:[0,SCENE.extent_um[1]],autorange:"reversed"},
+ zaxis:{title:{text:"z / µm"},visible:$("axes").checked,range:[0,SCENE.extent_um[2]]}}};
+}
+function draw(){
+ let traces=SCENE[mode].map(v=>JSON.parse(JSON.stringify(v)));
+ if(mode==="native" && traces.length>SCENE.channels.length)traces[traces.length-1].visible=$("overlap").checked;
+ Plotly.react("plot",traces,layout(),{responsive:true,displaylogo:false,modeBarButtonsToRemove:["toImage"]}).then(()=>{drawn=true;});
+ $("nativeBtn").classList.toggle("active",mode==="native");$("surfaceBtn").classList.toggle("active",mode==="surface");
+ $("overlapLabel").style.display=SCENE.channels.length===2&&mode==="native"?"flex":"none";
+ $("definition").textContent=mode==="native"?"方法 1：每个点来自一个真实、超阈值的原生像素。金色表示同一 XYZ 双通道均超阈值。":"方法 2：Marching cubes 强度等值面。表面之间的交叠仅作形态观察，不参与共现定量。";
+ if(mode==="native"){
+  $("sampling").textContent=SCENE.point_info.map(x=>x.channel+": "+x.display_points.toLocaleString()+" 个显示点").join("；")+"。点显示有抽样，统计使用全部原生像素。";
+ }else{
+  $("sampling").textContent=SCENE.meshes.map(x=>x.channel+": "+x.faces.toLocaleString()+" 个三角面，步长 "+x.step_size).join("；")+
+   (traces.length?"。没有插入新的实测层。":"。当前阈值未形成可用表面，可在主工具中调整阈值后重建。");
+ }
+}
+$("name").textContent=SCENE.source_name;
+$("geometry").textContent=SCENE.shape_zyx[0]+" 个实测 Z 层；范围 "+SCENE.extent_um.map(x=>x.toFixed(3)).join(" × ")+" µm；Z 来源："+SCENE.z_source;
+$("warnings").textContent=SCENE.warnings.join(" ") + (SCENE.saturation.some(x=>x.saturated_native_samples>0)?" 存在采集饱和像素，见 settings.json。":"");
+SCENE.channels.forEach((ch,i)=>{
+ const label=document.createElement("label"),swatch=document.createElement("span"),input=document.createElement("input"),value=document.createElement("span");
+ swatch.textContent=ch.name;swatch.style.color=ch.color;input.type="range";input.min=0;input.max=1;input.step=.01;input.value=ch.opacity;
+ input.setAttribute("aria-label",ch.name+" 不透明度");value.textContent=Number(input.value).toFixed(2);
+ input.oninput=()=>{
+  const val=Number(input.value);ch.opacity=val;value.textContent=val.toFixed(2);
+  for(const method of ["native","surface"])for(const t of SCENE[method])if(t.meta&&t.meta.channel_index===ch.index){if(t.type==="scatter3d")t.marker.opacity=val;else t.opacity=val;}
+  const traces=$("plot").data||[];
+  traces.forEach((t,j)=>{if(t.meta&&t.meta.channel_index===ch.index)Plotly.restyle("plot",t.type==="scatter3d"?{"marker.opacity":val}:{opacity:val},[j]);});
+ };
+ label.append(swatch,input,value);$("opacities").append(label);
+});
+if(SCENE.overlap){
+ const o=SCENE.overlap;
+ [["通道 1 重叠积分",o.channel_1_overlap_percent],["通道 2 重叠积分",o.channel_2_overlap_percent],["合并重叠积分",o.pooled_overlap_percent]].forEach(([name,value])=>{
+  const box=document.createElement("div"),n=document.createElement("span"),v=document.createElement("strong");
+  n.textContent=name+"　";v.textContent=value===null?"NA":value.toFixed(2)+"%";box.append(n,v);$("statistics").append(box);
+ });
+}
+$("plane").max=SCENE.z_um.length-1;
+function plane(){
+ const i=Number($("plane").value);$("zlabel").textContent="第 "+(i+1)+" / "+SCENE.z_um.length+" 层 · z = "+SCENE.z_um[i].toFixed(3)+" µm";
+ $("slice").src=SCENE.slices[i];
+ if(SCENE.class_slices.length)$("classes").src=SCENE.class_slices[i];else $("classBox").hidden=true;
+}
+$("nativeBtn").onclick=()=>{mode="native";draw();};$("surfaceBtn").onclick=()=>{mode="surface";draw();};
+$("overlap").onchange=draw;$("axes").onchange=()=>Plotly.relayout("plot",{"scene.xaxis.visible":$("axes").checked,"scene.yaxis.visible":$("axes").checked,"scene.zaxis.visible":$("axes").checked});
+$("reset").onclick=()=>Plotly.relayout("plot",{"scene.camera":camera});
+$("png").onclick=()=>Plotly.downloadImage("plot",{format:"png",width:1800,height:1300,filename:"3D_"+mode});
+$("plane").oninput=plane;
+plane();draw();
+</script>
+</body></html>

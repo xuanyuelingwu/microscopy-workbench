@@ -1,0 +1,44 @@
+{
+  "schema": "microscopy-workbench/1",
+  "mode": "video",
+  "source_sha256": "b9f380b73f17e449d849ee6ede60f2c27db560c28616581050897bd7093dcdcf",
+  "channels": [
+    {
+      "index": 0,
+      "low": 50,
+      "high": 3000,
+      "gamma": 0.65,
+      "background": 50,
+      "gate": 150,
+      "color": "#2774ff",
+      "opacity": 0.25
+    },
+    {
+      "index": 1,
+      "low": 50,
+      "high": 3000,
+      "gamma": 0.65,
+      "background": 50,
+      "gate": 150,
+      "color": "#ff4050",
+      "opacity": 0.45
+    }
+  ],
+  "selection": {},
+  "start": 2,
+  "end": 11,
+  "zero_s": 9.1,
+  "roi": {
+    "x": 15,
+    "y": 12,
+    "width": 65,
+    "height": 47
+  },
+  "roi_reference_frame": 12,
+  "speed": 3,
+  "fps": 30,
+  "max_side": 0,
+  "timestamp": true,
+  "scale_bar": true,
+  "example_type": "synthetic only; no biological interpretation"
+}

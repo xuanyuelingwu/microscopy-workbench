@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-20",
+  "version": "1.0.0",
+  "environment": "fresh virtual environment installed from public PyPI",
+  "python": "3.12.14",
+  "platform": "Windows",
+  "architecture": "AMD64",
+  "tests_run": 14,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "passed": true,
+  "duration_s": 10.748,
+  "packages": {
+    "nd2": "0.12.0",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "scikit-image": "0.26.0",
+    "tifffile": "2026.9.20",
+    "pillow": "12.3.0",
+    "plotly": "7.1.0",
+    "imageio-ffmpeg": "0.6.0"
+  },
+  "code_sha256": {
+    "core.py": "2137791ab58950d49413539473c9769c06ab12510025edb161e9c926bef90cf2",
+    "app.py": "48a0f1cd644f98bf0790a7e8af970b02e0258f00e0dad3f1f3baf51969ae5618",
+    "replay.py": "0a227d02ceec2dfc5f2a788a569fb22d02863c4ea31ccb1ec6d8cf40ec7d951e",
+    "package_release.py": "19d1df219034ac0fbb936c39392be2dfc985c4ad53507b6c0634cdba653b3344"
+  },
+  "input_data": "included synthetic OME-TIFFs and generated in-test arrays only",
+  "ci": "See the repository Actions checks for Windows/Linux results at the relevant commit.",
+  "independent_laboratory_validation": false,
+  "experimental_images_distributed": false,
+  "public_content_audit": {
+    "files_checked": 54,
+    "relative_document_links_checked": 39,
+    "private_path_or_token_findings": 0,
+    "experimental_ND2_included": false
+  },
+  "fresh_environment_ND2_smoke": {
+    "recordings": 3,
+    "passed": true,
+    "check": "Native first-frame decoding equals direct ND2 read for two Z stacks and one time series.",
+    "source_data_included": false,
+    "biological_interpretation_validated": false
+  }
+}

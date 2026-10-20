@@ -1,0 +1,18 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.txt text eol=lf
+*.bat text eol=crlf
+*.tif binary
+*.tiff binary
+*.gif binary
+*.png binary
+third_party_licenses/** -text -whitespace
+static/plotly.min.js -whitespace linguist-vendored
+THIRD_PARTY_NOTICES.txt -whitespace

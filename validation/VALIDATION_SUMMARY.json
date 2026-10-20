@@ -1,0 +1,91 @@
+{
+  "tool_version": "1.0.0",
+  "portable_unittest_cases": 10,
+  "portable_unittest_status": "passed",
+  "synthetic_inputs": 2,
+  "synthetic_inputs_are_experimental_data": false,
+  "real_nd2_validation_status": "passed",
+  "real_nd2_checks": [
+    {
+      "check": "random-access ND2 equals complete decode",
+      "result": "pass"
+    },
+    {
+      "check": "random-access ND2 equals complete decode",
+      "result": "pass"
+    },
+    {
+      "check": "random-access ND2 equals complete decode",
+      "result": "pass"
+    },
+    {
+      "check": "3D native backup and all displayed points verified",
+      "result": "pass"
+    },
+    {
+      "check": "3D three integral percentages independently recomputed",
+      "result": "pass"
+    },
+    {
+      "check": "3D native backup and all displayed points verified",
+      "result": "pass"
+    },
+    {
+      "check": "3D three integral percentages independently recomputed",
+      "result": "pass"
+    },
+    {
+      "check": "encoded video decoded and timing checked",
+      "result": "pass"
+    },
+    {
+      "check": "encoded video decoded and timing checked",
+      "result": "pass"
+    },
+    {
+      "check": "ROI and time-zero independence",
+      "result": "pass"
+    }
+  ],
+  "browser_ui_checks": [
+    "Native ND2 file selection and local upload",
+    "Direct local path without source copying",
+    "Automatic complete full-field movie preview",
+    "Native frame 13 used for an odd-sized 95x83 ROI",
+    "Inclusive time selection frames 4–10",
+    "Independent zero and ROI reference outside selected clip",
+    "Full / crop GIF and MP4 export with JSON settings",
+    "22-plane ND2 crop generated native-position and isosurface output",
+    "Native and isosurface switching verified in standalone viewer",
+    "405 opacity set to 0 independently of 561 opacity set to 1; integral percentages unchanged",
+    "Gold overlap display toggle and acquired-plane 22 at z=8.380 um verified"
+  ],
+  "real_project_use": "The same processing core rendered two new 195-frame nuclear microscopy sequences.",
+  "independent_laboratory_validation": "not yet performed",
+  "community_adoption": "not yet measured",
+  "scope": "Numerical and export correctness for included cases; not validation of every microscope, segmentation threshold or biological inference.",
+  "versions": {
+    "tool": "1.0.0",
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "packages": {
+      "nd2": "0.12.0",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "scikit-image": "0.26.0",
+      "tifffile": "2026.9.20",
+      "pillow": "12.3.0",
+      "plotly": "7.1.0",
+      "imageio-ffmpeg": "0.6.0"
+    },
+    "ffmpeg": "7.1-essentials_build-www.gyan.dev",
+    "code_sha256": {
+      "core.py": "2137791ab58950d49413539473c9769c06ab12510025edb161e9c926bef90cf2",
+      "app.py": "48a0f1cd644f98bf0790a7e8af970b02e0258f00e0dad3f1f3baf51969ae5618",
+      "replay.py": "0a227d02ceec2dfc5f2a788a569fb22d02863c4ea31ccb1ec6d8cf40ec7d951e",
+      "static/app.js": "2f0f98f3829abf7c519ce48e0c1ffee09eaead3fc245047c6a798e054ea37d36",
+      "static/index.html": "96dc92608c8e536df69d5a9c12bc5c253f26682bb99cfe45ec60ee8d7af539bc",
+      "static/volume_viewer.html": "d109aadc12d46b5949d444ce351840a4b5871c55ebddce003b50e6a276d54b2c",
+      "static/styles.css": "31f9b1a4c982bac7347f4d18711d69971a4bfdcf3bb205ae09af54dc67c27f7e"
+    }
+  }
+}
